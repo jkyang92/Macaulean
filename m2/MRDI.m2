@@ -307,35 +307,3 @@ assert BinaryOperation(symbol ===, QQ, loadMRDI "{\"_ns\":{\"Oscar\":[\"https://
 ///
 
 end
-
-restart
-
-loadPackage("MRDI", FileName => "~/src/macaulay2/M2/M2/Macaulay2/packages/MRDI.m2", Reload => true)
-check(MRDI, Verbose => true)
-
--- set up the server
-needsPackage "JSONRPC" -- on development branch, will be in M2 1.25.11
-server = new JSONRPCServer
-
-registerMethod(server, "quotientRemainder", (polymrdi, idealmrdi) -> (
-	f := loadMRDI polymrdi;
-	I := loadMRDI idealmrdi;
-	(q, r) := quotientRemainder(matrix f, gens I);
-	(saveMRDI q, saveMRDI r)))
-
--- client constructs an ideal and a polynomial
-R = QQ[x,y,z,w]
-I = monomialCurveIdeal(R, {1,2,3})
-f = random(2, I)
--- construct the JSON-RPC request
-request = makeRequest("quotientRemainder", {saveMRDI f, saveMRDI I}, 1)
-
--- server handles the computation
-response = handleRequest(server, request)
-
--- client reads the result
-needsPackage "JSON"
-result = (fromJSON response)#"result"
-(q, r) = (loadMRDI result#0, loadMRDI result#1)
-assert zero r -- ideal membership!
-assert zero(gens I * q - matrix f) -- use q as our certificate
