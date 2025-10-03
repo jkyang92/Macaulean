@@ -1,0 +1,10 @@
+name = "Macaulean"
+version = "0.1.0"
+defaultTargets = ["macaulean"]
+
+[[lean_lib]]
+name = "Macaulean"
+
+[[lean_exe]]
+name = "macaulean"
+root = "Main"
