@@ -10,7 +10,7 @@ def main : IO Unit :=
                        , setsid := false
                        , stdin := .piped
                        , stdout := .piped}
-     m2Process.stdin.putStr "1+1"
+     m2Process.stdin.putStr "[1, 1]"
      m2Process.stdin.flush
      let m2Output <- m2Process.stdout.getLine
      IO.println s!"Macaulay2 Output: {m2Output}"
