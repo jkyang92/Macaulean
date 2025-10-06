@@ -31,6 +31,38 @@ fromJSONStream File := (file) -> (
         )
     )
 
+readLSPHeaderLine = method();
+readLSPHeaderLine File := (file) -> (
+    line := "";
+    while not atEndOfFile file do (
+        currChar := getc file;
+        if currChar == "\r" then (
+            if atEndOfFile file then return line | currChar;
+            nextChar := getc file;
+            if nextChar == "\n" then return line;
+            line |= (currChar | nextChar);
+            )
+        else line |= currChar
+        );
+    line
+    )
+
+readLSPHeaders = method();
+readLSPHeaders File := (file) -> (
+    headers := while true list (
+        headerLine := readLSPHeaderLine file;
+        if headerLine=="" then break;
+        headerLine);
+    hashTable apply(headers, h -> (
+            firstColon := first first regex("[:]",h);
+            --TODO this is supposed to be case insensitive
+            headerName := substring(0,firstColon, h);
+            headerValue := substring(firstColon+1, h);
+            (headerName, replace("\\s+$","",replace("^\\s+","",headerValue)))
+            ))
+    )
+
+
 --main loop, reading one JSON expression at a time
 --right now it uses the same file for input and output
 macauleanMainLoop = method();
@@ -39,11 +71,14 @@ macauleanMainLoop (JSONRPCServer, File) := (server, file) -> (
         wait file;
         if atEndOfFile file then return;
         if isReady file then (
-            local response;
-            try request := fromJSONStream file
-            then response = handleRequestHelper_server request
-            else response = makeResponse(server, JSONRPCError(-32700, "Parse error"), null);
-            file << toJSON response;
+            headers := readLSPHeaders file;
+            stderr << headers << endl;
+            requestLength := (NNParser : charAnalyzer) headers#"Content-Length";
+            requestBody := read(file,requestLength);
+            response := handleRequest_server requestBody;
+            file << "Content-Length: " << length response << "\r\n";
+            file << "\r\n";
+            file << response;
             )
         )
     )

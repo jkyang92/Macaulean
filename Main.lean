@@ -1,25 +1,11 @@
 import Macaulean
-import Lean.Data.JsonRpc
 
 def runJSONRPCTest :=
-  do let (m2stdin,m2Process) <-
-      IO.Process.spawn {cmd := "M2"
-                       , args := #["--script", "./macaulean.m2"]
-                       , cwd := .some "./m2/"
-                       , env := .empty
-                       , inheritEnv := true
-                       , setsid := false
-                       , stdin := .piped
-                       , stdout := .piped} >>=
-      IO.Process.Child.takeStdin
-     let m2stdinStream := IO.FS.Stream.ofHandle m2stdin
-     m2stdinStream.writeRequest
-        { id := .num 1 ,
-          method := "testMethod",
-          param := ["1+1"] }
-     m2stdinStream.flush
-     let m2Output <- m2Process.stdout.getLine
-     IO.println s!"Macaulay2 Output: {m2Output}"
+  do let (m2Process,m2Server) <- startM2Server
+     let result1 <- m2Server.eval "1+1"
+     IO.println s!"Macaulay2 Output: {result1}"
+     let result2 <- m2Server.eval "factor 20"
+     IO.println s!"Macaulay2 Output: {result2}"
      pure m2Process
 
 def main : IO Unit :=
